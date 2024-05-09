@@ -1,0 +1,19 @@
+=== SSSB RSS Feed Generator For APT Listings ===
+
+Generate an RSS feed for the apartment listings for Stockholm Student
+Housing (https://sssb.se)
+
+Crawls using Selenium since the apartment listings are generated
+dynamically. I put the make.sh script in my crontab to run twice a day
+to update the RSS file on my web server.
+
+Adjust the make file to point to your web server (and to the Windows
+temp folder if using Windows, not it assumes /tmp exists). The make
+script depends on notify-send to send notifications on the exit status
+of the script.
+
+== USAGE ==
+
+python3 sssb.py PATH_TO_FEED_FILE
+
+or just by running ./make.sh
