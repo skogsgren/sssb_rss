@@ -71,21 +71,6 @@ def parse_rows(soup: BeautifulSoup) -> dict[str, Listing]:
         )
     return listings
 
-
-@dataclass
-class Listing:
-    link: str
-    img_link: str
-    area: str
-    address: str
-    apt_type: str
-    floor: str
-    sqm: str
-    rent: str
-    date: str
-    queue_days: str
-
-
 def generate_post_html(listing: Listing) -> str:
     template_str = """
     <img src={{ listing.img_link }}>
