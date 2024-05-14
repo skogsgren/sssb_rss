@@ -12,7 +12,7 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 
 
-def crawl():
+def crawl() -> BeautifulSoup:
     opts = Options()
     test_ua = "Mozilla/5.0 (Windows NT 4.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/37.0.2049.0 Safari/537.36"
     opts.add_argument("--headless")
@@ -71,6 +71,7 @@ def parse_rows(soup: BeautifulSoup) -> dict[str, Listing]:
         )
     return listings
 
+
 def generate_post_html(listing: Listing) -> str:
     template_str = """
     <img src={{ listing.img_link }}>
@@ -119,7 +120,7 @@ def create_xml(listings: dict[str, Listing], xml_filepath: Path) -> None:
     prev_idx = []
     for item in prev_items:
         item_link = item.find("link")
-        if item_link:
+        if item_link is not None:
             prev_idx.append(get_listing_id(str(item_link.text)))
     for listing_id, listing in listings.items():
         if listing_id in prev_idx:
