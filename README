@@ -1,33 +1,37 @@
 === SSSB RSS feed generator for apartment listings ===
 
 generate an rss feed for the apartment listings for Stockholm student
-housing (https://sssb.se)
+housing (https://sssb.se).
 
-crawls using selenium since the apartment listings are generated
-dynamically. I put the make.sh script in my crontab to run twice a day
-to update the rss file on my web server.
+I put the make.sh script in my crontab to run twice a day to update the
+rss file on my web server.
 
 == USAGE ==
 
-if you only want to run it once, then first create a venv and install
-dependencies:
+if you only want to run it once, then first  install dependencies, e.g.
+using pip:
 
-    python3 -m venv crawl_venv
-    source crawl_venv/bin/activate
     pip3 install -r requirements.txt
 
 then run the sssb.py file and provide where you want the feed xml to be
-saved, for example to save it to a file called feed.xml in the current
-folder:
+saved (or updated if it already exists), e.g. to save it to a file
+called feed.xml in the current folder:
 
     python3 sssb.py ./feed.xml
 
 however, I created it to generate and update an already existing rss
-file situated on a web server. to do that, go into make.sh and change
-the two variables $TMP_PATH and $VENV_PATH to the correct locations for
-your machine. then you just run:
+file situated on a web server. to do that, go into make.sh and update
+the variables to the correct locations for your machine. then you run:
 
     ./make.sh
 
 the make script depends on notify-send to send notifications on the
-exit status of the script.
+exit status of the script. remove those if not needed.
+
+== TROUBLESHOOTING ==
+
+currently the script loads the jquery url from a file called 'url'. This
+url might need to be updated in the future. either open an issue if it's
+not working or find it yourself by searching for 'callback' in the
+network tab of developer tools as you load the listings webpage (with
+pictures).
