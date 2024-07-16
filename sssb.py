@@ -5,25 +5,28 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 import argparse
 import sys
-
+import json
 from bs4 import BeautifulSoup
 from jinja2 import Template
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
+import requests
 
 
-def crawl() -> BeautifulSoup:
-    opts = Options()
-    test_ua = "Mozilla/5.0 (Windows NT 4.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/37.0.2049.0 Safari/537.36"
-    opts.add_argument("--headless")
-    opts.add_argument(f"--user-agent={test_ua}")
-    opts.binary_location = "/usr/bin/google-chrome"
-    driver = webdriver.Chrome(opts)
-    driver.get(
-        "https://sssb.se/soka-bostad/sok-ledigt/lediga-bostader/"
-        "?pagination=0&paginationantal=50"
+def crawl(url_filename: str) -> BeautifulSoup:
+    """given a string to a file containing sssb url, return bs parser"""
+    with open(url_filename, "r") as f:
+        url = f.read()
+    response = requests.get(url)
+    if response.status_code != 200:
+        raise ValueError("request error code")
+    # since the response is wrapped in a jquery function call,
+    # we need to remove the initial function name and subsequent parentheses.
+    start_idx = response.text.find("(") + 1
+    end_idx = len(response.text) - 2
+    content = json.loads(response.text[start_idx:end_idx])
+    html = BeautifulSoup(
+        content["html"]["objektlistabilder@lagenheter"], features="lxml"
     )
-    return BeautifulSoup(driver.page_source, features="lxml")
+    return html
 
 
 @dataclass
@@ -41,21 +44,26 @@ class Listing:
 
 
 def strip_html(html: str) -> str:
+    """strips html of certain unwanted characters"""
     return html.strip().replace("\xa0", "")
 
 
 def get_listing_id(link: str) -> str:
+    """given a link returns the reference id to that apartment listing"""
     return parse_qs(urlparse(link).query)["refid"][0]
 
 
 def parse_rows(soup: BeautifulSoup) -> dict[str, Listing]:
+    """given bs4 html returns a formatted dictionary from apartment listing
+    reference id to structured information about that apartment, i.e. rent,
+    floor etc."""
     rows = soup.find_all(class_="ObjektListItem")
     if rows is None:
         raise ValueError("ERROR: couldn't find any rows to parse")
     listings: dict[str, Listing] = {}
     for row in rows:
         link: str = row.find(class_="ObjektTyp").contents[0].attrs["href"]
-        img_link: str = row.find(class_="ObjektBild").attrs["src"]
+        img_link: str = row.find(class_="ObjektBild").attrs["data-src"]
         listing_id: str = get_listing_id(link)
         listings[listing_id] = Listing(
             link,
@@ -73,6 +81,7 @@ def parse_rows(soup: BeautifulSoup) -> dict[str, Listing]:
 
 
 def generate_post_html(listing: Listing) -> str:
+    """given a Listing object returns rendered html for that object"""
     template_str = """
     <img src={{ listing.img_link }}>
     <ul>
@@ -90,6 +99,8 @@ def generate_post_html(listing: Listing) -> str:
 
 
 def create_xml(listings: dict[str, Listing], xml_filepath: Path) -> None:
+    """given a list of apartment listings, converts that to a RSS-compatible
+    RSS-file and exports it to the path provided"""
     rss = ET.Element("rss")
     rss.set("version", "2.0")
     channel = ET.SubElement(rss, "channel")
@@ -135,21 +146,21 @@ def create_xml(listings: dict[str, Listing], xml_filepath: Path) -> None:
         pub_date = ET.SubElement(item, "pubDate")
         pub_date.text = datetime.now().strftime("%a, %d %b %Y %H:%M:%S +0000")
 
-    ET.ElementTree(rss).write(
-        xml_filepath, encoding="utf-8", xml_declaration=True
-    )
+    ET.ElementTree(rss).write(xml_filepath, encoding="utf-8", xml_declaration=True)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("feed_filepath")
+    parser.add_argument("feed_filepath", help="location of existing/new feed file")
     args = parser.parse_args()
 
     parsed_rows = {}
+    # rudimentary approach to try several times before failure
     for _ in range(5):
-        parsed_rows = parse_rows(crawl())
+        parsed_rows = parse_rows(crawl("url"))
         if len(parsed_rows) != 0:
             break
     if len(parsed_rows) == 0:
+        print("ERROR: failed to crawl SSSB")
         sys.exit(1)
     create_xml(parsed_rows, Path(args.feed_filepath))
