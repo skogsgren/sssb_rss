@@ -1,0 +1,16 @@
+#!/bin/bash
+REMOTE_FILE="nas:~/sssb_feed.xml"
+TMP_FILE="$(mktemp)"
+
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+
+echo "copying $REMOTE_FILE to $TMP_FILE"
+scp "$REMOTE_FILE" "$TMP_FILE"
+echo "parsing sssb feed"
+python3 "${SCRIPT_DIR}/sssb.py" "$TMP_FILE"
+if [ $? != 0 ]; then
+	notify-send "Failed to crawl SSSB"
+else
+	scp "$TMP_FILE" "$REMOTE_FILE"
+	notify-send "Successfully updated SSSB RSS feed"
+fi

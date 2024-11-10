@@ -9,13 +9,14 @@ import json
 from bs4 import BeautifulSoup
 from jinja2 import Template
 import requests
+import os
+
+URL = "https://sssb.se/widgets/?callback=jQuery172034230436949903253_1718622405234&widgets%5B%5D=alert&widgets%5B%5D=objektsummering%40lagenheter&widgets%5B%5D=objektfilter%40lagenheter&widgets%5B%5D=objektsortering%40lagenheter&widgets%5B%5D=objektlistabilder%40lagenheter&widgets%5B%5D=pagineringantal%40lagenheter&widgets%5B%5D=paginering%40lagenheter&widgets%5B%5D=pagineringgofirst%40lagenheter&widgets%5B%5D=pagineringgonew%40lagenheter&widgets%5B%5D=pagineringlista%40lagenheter&widgets%5B%5D=pagineringgoold%40lagenheter&widgets%5B%5D=pagineringgolast%40lagenheter"
 
 
 def crawl(url_filename: str) -> BeautifulSoup:
     """given a string to a file containing sssb url, return bs parser"""
-    with open(url_filename, "r") as f:
-        url = f.read()
-    response = requests.get(url)
+    response = requests.get(URL, verify=False)
     if response.status_code != 200:
         raise ValueError("request error code")
     # since the response is wrapped in a jquery function call,
